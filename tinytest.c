@@ -1,7 +1,6 @@
 #include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "deps/tmx/tmx.h"
 
 #include "core.h"
 #include "sprite.h"
@@ -30,7 +29,7 @@ int main()
 	player 	= PlayerNew(renderer, "resources/skeleripped.png", 32, 50, 48*SCALE, 96*SCALE);
 
 	map = NULL;
-	map = MapLoad(renderer, "maps/test.txt", "resources/tiles2.png");
+	map = MapLoad(renderer, "maps/test2.txt", "resources/tiles2.png");
 	if(map == NULL) return -1;
 
 	//MapPrint(map);
