@@ -9,7 +9,7 @@ Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int
 
 	spr = (Sprite*) malloc(sizeof(Sprite));
 	if(spr == NULL){
-		printf("ERRNOMEM: at SpriteNew\n");
+		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
 
@@ -18,14 +18,9 @@ Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int
 		return NULL;
 	}
 	SDL_SetColorKey(tmp, SDL_TRUE, SDL_MapRGB(tmp->format, 0xFF, 0, 0xFF));
-
 	texture = SDL_CreateTextureFromSurface(rend, tmp);
-	//SDL_FreeSurface(tmp);
 	
-	spr->position.x = x;
-	spr->position.y = y;
-	spr->position.w = w;
-	spr->position.h = h;
+	FILLRECT(spr->position, x, y, w, h);
 
 	spr->sheet = texture;
 	spr->anim = AnimationNew();
@@ -36,6 +31,7 @@ Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int
 			SpriteAddFrame(spr, i, c);
 		}
 
+	SDL_FreeSurface(tmp);
 	return spr;
 }
 
@@ -43,7 +39,7 @@ void SpriteFree(Sprite* s)
 {
 	if(s == NULL) return;
 	AnimationFree(s->anim);
-	SDL_DestroyTexture(s->sheet);
+	if(s->sheet) SDL_DestroyTexture(s->sheet);
 	free(s);
 }
 
@@ -77,7 +73,7 @@ Animation* AnimationNew()
 {
 	Animation* anim = (Animation*) malloc(sizeof(Animation));
 	if(anim == NULL){
-		printf("ERROR: ERRNOMEM\nWHERE: AnimationNew\n");
+		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
 
@@ -110,14 +106,11 @@ int AnimationAddFrame(Animation* anim, int x, int y, int w, int h)
 	AnimationFrame* iter;
 	AnimationFrame* frame = (AnimationFrame*) malloc(sizeof(AnimationFrame));
 	if(frame == NULL){
-		printf("ERROR: ERRNOMEM\nWHERE: AnimationAddFrame\n");
+		DEBUGMSG(ERRNOMEM);
 		return -1;
 	}
 
-	frame->tilepos.x = x;
-	frame->tilepos.y = y;
-	frame->tilepos.w = w;
-	frame->tilepos.h = h;
+	FILLRECT(frame->tilepos, x, y, w, h);
 	frame->next = NULL;
 	
 	if(anim->size == 0){

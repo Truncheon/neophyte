@@ -8,19 +8,22 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 	SDL_Surface* tmp;
 	
 	tm = (Tilemap*) calloc(1, sizeof(Tilemap));
-	if(!tm) return NULL;
+	if(!tm){
+		DEBUGMSG("Could not allocate tilemap!");
+		return NULL;
+	}
 
 	/* Load surface and transform it into a texture */	
 	tmp = IMG_Load(tileset_path);
 	if(!tmp){
-		printf("Could not load surface!\n");
+		DEBUGMSG("Could not load surface!");
 		free(tm);
 		return NULL;
 	}
 
 	tm->tileset = SDL_CreateTextureFromSurface(rend, tmp);
 	if(!tm->tileset){
-		printf("Could not create texture!\n");
+		DEBUGMSG("Could not create texture!");
 		free(tm);
 		SDL_FreeSurface(tmp);
 		return NULL;
@@ -39,12 +42,12 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 
 	tm->mapping = (SDL_Rect*) calloc(tm->num, sizeof(SDL_Rect));
 	if(tm->mapping == NULL){
-		printf("Could not allocate mapping!\n");
+		DEBUGMSG("Could not allocate mapping!");
 		TilemapFree(tm);
 		return NULL;
 	}
 
-	printf("Tilemap created!\n");
+	DEBUGMSG("Tilemap created!\n");
 
 	return tm;
 }
@@ -58,11 +61,11 @@ int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* 
 	int i, j, c, x;
 	int tile_w, tile_h;
 	FILE* fp;
-	char* buffer,* pos,* tmp;
+	char* buffer,* pos;
 	const int bufsize = 2048 * 4;
-	const int scale = 1;
+	const int scale = 2;
 
-	const char keys[5][16] = {"width=", "height=", "tilewidth=", "tileheight=", "data="};
+	//const char keys[5][16] = {"width=", "height=", "tilewidth=", "tileheight=", "data="};
 	int* 	   chests[4] = {&map->w, &map->h, &tile_w, &tile_h};
 
 	if(!rend || !map || !map_path || !tileset_path) return 1;
@@ -70,14 +73,14 @@ int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* 
 	/* Open file and read map */
 	fp = fopen(map_path, "r");
 	if(!fp){
-		printf("Could not open file!\n");
+		DEBUGMSG("Could not open file!");
 		return 1;
 	}
 
 	/* Allocate memory */
 	buffer = (char*) malloc(sizeof(char) * bufsize);
 	if(!buffer){
-		printf("Could not allocate/populate buffer!\n");
+		DEBUGMSG("Could not allocate/populate buffer!");
 		fclose(fp);
 		return 1;
 	}
@@ -85,7 +88,7 @@ int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* 
 	memset(buffer, 0, bufsize);
 
 	/* Load file into buffer */
-	for(c = i = 0; c != EOF && i < bufsize - 1; i++){
+	for(c = i = 0; c != EOF || i < bufsize - 1; i++){
 		c = fgetc(fp);
 		buffer[i] = c;
 	}
@@ -99,19 +102,19 @@ int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* 
 			pos++;
 		}
 		*chests[i] = strtol(pos, &pos, 10);
-		printf("%d %p\n", *chests[i], pos);
+		//printf("%d %p\n", *chests[i], pos);
 	}
 
 	/* Allocate map structures */
 	map->tilemap = TilemapNew(rend, tile_w, tile_h, tileset_path);
 	if(!map->tilemap){
-		printf("Could not create tilemap!\n");
+		DEBUGMSG("Could not create tilemap!");
 		return 1;
 	}
 
 	map->tiles = (Tile*) calloc(map->w * map->h, sizeof(Tile));
 	if(!map->tiles){
-		printf("Could not allocate tiles!\n");
+		DEBUGMSG("Could not allocate tiles!");
 		TilemapFree(map->tilemap);
 		return 1;
 	}
@@ -119,17 +122,18 @@ int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* 
 	/* Establish codes for the tiles */
 	for(i = 0; i < map->tilemap->w; i++)
 		for(j = 0; j < map->tilemap->h; j++){
-			map->tilemap->mapping[i + j*map->tilemap->w].x = map->tilemap->tile_w * i;
-			map->tilemap->mapping[i + j*map->tilemap->w].y = map->tilemap->tile_h * j;
-			map->tilemap->mapping[i + j*map->tilemap->w].w = map->tilemap->tile_w;
-			map->tilemap->mapping[i + j*map->tilemap->w].h = map->tilemap->tile_h;
+			FILLRECT(map->tilemap->mapping[i + j*map->tilemap->w],
+					 map->tilemap->tile_w * i,
+					 map->tilemap->tile_h * j,
+					 map->tilemap->tile_w,
+					 map->tilemap->tile_h);
 	}
 	printf("%d codes loaded!\n", map->tilemap->num);
 
 	/* Setup pointer to read from specific point in the buffer */
 	pos = strstr(buffer, "data=");
 	if(!pos){
-		printf("strstr returned nothing!\n");
+		DEBUGMSG("strstr returned nothing!");
 		return 1;
 	}
 	pos+=5;
@@ -139,58 +143,44 @@ int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* 
 	int bytes = 0, read = 0;
 	for(j = 0; j < map->h; j++){
 		for(i = 0; i < map->w; i++){
-			
-			int w = sscanf(pos + read, "%d%n", &x, &bytes);
+			/* TODO: Handle sscanf return value */
+			sscanf(pos + read, "%d%n", &x, &bytes);
 			read += bytes;
-			//printf("bytes: %d, read: %d\n", bytes, read);
-
-			/*if(w != 1){
-				printf("something went wrong! w: %d, x: %d\n", w, x);
-			}*/
-			
-			/*map->tiles[i + map->w * j].code   = x++;
-			if(x >= map->tilemap->num){
-				x = 0;
-			}*/
+		
 			map->tiles[i + map->w * j].code = x-1;
-
-			map->tiles[i + map->w * j].dest.x = map->tilemap->tile_w * scale * i;
-			map->tiles[i + map->w * j].dest.y = map->tilemap->tile_h * scale * j;
-			map->tiles[i + map->w * j].dest.w = map->tilemap->tile_w * scale;
-			map->tiles[i + map->w * j].dest.h = map->tilemap->tile_h * scale;
+			FILLRECT(map->tiles[i + map->w * j].dest, 
+					 map->tilemap->tile_w * scale * i,
+					 map->tilemap->tile_h * scale * j,
+					 map->tilemap->tile_w * scale,
+					 map->tilemap->tile_h * scale);
 		}
 	}
 	/* TODO: Support for more layers */
 
-	TilemapAssert(map->tilemap);
-
+	if(!TilemapAssert(map->tilemap)){
+		
+	}
+	free(buffer);
 	return 0;
 }
 
 int TilemapAssert(Tilemap* tm)
 {
 	if(tm == NULL){
-		printf("No tilemap!\n");
+		DEBUGMSG("No tilemap!");
 		return 0;
 	}
 
-	printf("Asserting tilemap...\n\nw:%d h:%d num:%d t_w: %d, t_h: %d\n",
-			tm->w, tm->h, tm->num, tm->tile_w, tm->tile_h);
-	if(tm->tileset == NULL) printf("No tileset!\n");
-	if(tm->mapping == NULL){
-		printf("No mapping!\n");
+	if(tm->tileset == NULL){
+		DEBUGMSG("No tileset!");
 		return 0;
 	}
-	return 0;
-	for(int i = 0; i < tm->num; i++)
-		printf("mapping(code:%d): (%d, %d, %d, %d)\n",
-				i,
-				tm->mapping[i].x,
-				tm->mapping[i].y,
-				tm->mapping[i].w,
-				tm->mapping[i].h
-			);
-	return 0;
+	if(tm->mapping == NULL){
+		DEBUGMSG("No mapping!");
+		return 0;
+	}
+	
+	return 1;
 }
 
 void TilemapFree(Tilemap* tm)
@@ -207,20 +197,21 @@ Map* MapLoad(SDL_Renderer* rend, const char* mapfile, const char* tilesetpath)
 	Map* m;
 
 	if(rend == NULL || mapfile == NULL || tilesetpath == NULL){
-
-		printf("Map failed to load!\n");
+		DEBUGMSG("Map failed to load!");
 		return NULL;
 	}
 
 	m = (Map*) malloc(sizeof(Map));
 	if(m == NULL){
-		printf("Map failed to load!\n");
+		DEBUGMSG("Map failed to load!");
 		return NULL;
 	}
 	
 	m->renderer= rend;
 	
 	TilemapLoad(rend, m, mapfile, tilesetpath);
+
+	MapPrint(m);
 
 	return m;
 }
@@ -236,13 +227,23 @@ void MapFree(Map* m)
 
 void MapPrint(Map* m)
 {
-	int i;
+	int x, y;
 
 	if(!m) return;
 
-	for(i = 0; i < m->w * m->h; i++)
-		printf("(%d, %d) = %d\t", m->tiles[i].dest.x, m->tiles[i].dest.y, m->tiles[i].code);
-
+	printf("Map: (%d by %d)\n\t", m->w, m->h);
+	for(x = 0; x < m->w; x++){
+		printf("%d\t", m->tiles[x].dest.x);
+	}
+	printf("\n");
+	for(y = 0; y < m->h; y++){
+		printf("%d\t", m->tiles[y * m->w].dest.y);
+		for(x = 0; x < m->w; x++){
+			printf("%d\t", m->tiles[y * m->w + x].code);
+		}
+		printf("\n");
+	}
+	printf("\n");
 }
 
 void MapRender(Map* m)
@@ -261,7 +262,6 @@ void MapRender(Map* m)
 						m->tilemap->tileset,
 						&m->tilemap->mapping[code],
 						&m->tiles[i].dest);
-		//m->tiles[i].code++;
 	}
 }
 

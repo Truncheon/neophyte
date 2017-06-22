@@ -6,6 +6,7 @@
 #include "sprite.h"
 #include "player.h"
 #include "map.h"
+#include "utils.h"
 
 #define SCALE 1
 #define SCRWIDTH 640
@@ -15,24 +16,20 @@ int main()
 {
 	SDL_Window* 	window;
 	SDL_Renderer* 	renderer;
-	Player* 		player;
 	SDL_Event 		event;
 	int 			exit;
 	int* 			keys;
+	Player* 		player;
 	Map* 			map;
 	
 	
 	keys 	= CoreSetup(SCRWIDTH, SCRHEIGHT);
-	exit 	= 0;
 	window 	= CoreInit();
 	renderer= SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+	exit 	= 0;
+	
 	player 	= PlayerNew(renderer, "resources/skeleripped.png", 32, 50, 48*SCALE, 96*SCALE);
-
-	map = NULL;
 	map = MapLoad(renderer, "maps/test2.txt", "resources/tiles2.png");
-	if(map == NULL) return -1;
-
-	//MapPrint(map);
 
 	do{
 		exit = CoreInput(&event, keys);
@@ -50,7 +47,8 @@ int main()
 
 	PlayerFree(player);
 	MapFree(map);
-	CoreShutdown(window);
+	SDL_DestroyRenderer(renderer);
+	CoreShutdown(window, keys);
 	return 0;
 }
 

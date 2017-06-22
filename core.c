@@ -19,18 +19,18 @@ int* CoreSetup(int w, int h){
 SDL_Window* CoreInit(){
 	SDL_Window* window = NULL;
 	if(SDL_Init(SDL_INIT_VIDEO) != 0){
-		printf("ERRNOINIT: In SDL_Init: \"%s\"\n", SDL_GetError());
+		DEBUGMSG("%s", SDL_GetError());
 		return NULL;
 	}
 	if(IMG_Init(CORE_IMG_INIT_FLAGS) < 0){
-		printf("ERRNOINIT: In SDL_IMG_Init: %s\n", SDL_GetError());
+		DEBUGMSG("%s", SDL_GetError());
 		return NULL;
 	}
 	window = SDL_CreateWindow(TITLE, CORE_WIN_POS_X, CORE_WIN_POS_Y,
 									 CORE_WIN_WIDTH, CORE_WIN_HEIGHT,
 									 CORE_FLAGS);
 	if(window == NULL){
-		printf("ERRSDL: In SDL_CreateWindow: %s\n", SDL_GetError());
+		DEBUGMSG("%s", SDL_GetError());
 		return NULL;
 	}
 	
@@ -66,25 +66,23 @@ void CoreSetKeys(SDL_Event* ev, int* keys, int mode)
 
 }
 
-void CoreShutdown(SDL_Window* window){
+void CoreShutdown(SDL_Window* window, int* keys){
 	SDL_DestroyWindow(window);
+	free(keys);
 	SDL_Quit();
 }
 
 SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path){
 	SDL_Surface* optimized;	
 	SDL_Surface* surface = IMG_Load(path);
-	if(fmt == NULL){
-		surface = surface;
-	}
 	if(surface == NULL){
-		printf("ERRSDL: %s || ERRPATH: %s\n", IMG_GetError(), path);
+		DEBUGMSG("Could not load IMG: %s, %s", IMG_GetError(), path);
 		return NULL;
 	}
 	
 	optimized = SDL_ConvertSurface(surface, fmt, 0);
 	if(optimized == NULL){
-		printf("ERRSDL: %s\n", SDL_GetError());
+		DEBUGMSG("%s", SDL_GetError());
 		SDL_FreeSurface(surface);
 		return NULL;
 	}

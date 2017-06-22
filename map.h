@@ -2,7 +2,7 @@
 #include <string.h>
 #include <SDL2/SDL.h>
 #include "core.h"
-
+#include "utils.h"
 
 typedef struct _tilemap_
 {

@@ -17,7 +17,7 @@ int* 			CoreSetup 		(int w, int h);
 SDL_Window* 	CoreInit 		();
 int 			CoreInput 		(SDL_Event*, int* keys);
 void 			CoreSetKeys 	(SDL_Event*, int* keys, int mode);
-void 			CoreShutdown 	(SDL_Window*);
+void 			CoreShutdown 	(SDL_Window*, int*);
 SDL_Surface* 	CoreLoadSurface (SDL_PixelFormat*, const char*);
 
 #endif
