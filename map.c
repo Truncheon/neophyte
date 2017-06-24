@@ -6,7 +6,9 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 {
 	Tilemap* tm;
 	SDL_Surface* tmp;
-	
+	int i, j;
+
+	/* Alocate tilemap */
 	tm = (Tilemap*) calloc(1, sizeof(Tilemap));
 	if(!tm){
 		DEBUGMSG("Could not allocate tilemap!");
@@ -20,7 +22,8 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 		free(tm);
 		return NULL;
 	}
-
+	
+	SDL_SetColorKey(tmp, SDL_TRUE, SDL_MapRGB(tmp->format, 0xFF, 0, 0xFF));
 	tm->tileset = SDL_CreateTextureFromSurface(rend, tmp);
 	if(!tm->tileset){
 		DEBUGMSG("Could not create texture!");
@@ -29,14 +32,12 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 		return NULL;
 	}
 
+	/* Set basic tilemap data */
 	tm->w = tmp->w / t_w;
 	tm->h = tmp->h / t_h;
 	tm->tile_w = t_w;
 	tm->tile_h = t_h;
 	tm->num = tm->w * tm->h;
-
-	printf("Tilemap data:\nWidth = %d\nHeight = %d\nTile size = (%d, %d)\nSource image size = (%d,%d)\n",
-				tm->w, tm->h, t_w, t_h, tmp->w, tmp->h);
 
 	SDL_FreeSurface(tmp);
 
@@ -46,122 +47,21 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 		TilemapFree(tm);
 		return NULL;
 	}
+	
+	/* Establish codes for the tiles */
+	for(j = 0; j < tm->h; j++){
+		for(i = 0; i < tm->w; i++){
+			FILLRECT(tm->mapping[i + j * tm->w],
+					 tm->tile_w * i,
+					 tm->tile_h * j,
+					 tm->tile_w,
+					 tm->tile_h);
+		}
+	}
 
 	DEBUGMSG("Tilemap created!\n");
 
 	return tm;
-}
-
-int TilemapLoad(SDL_Renderer* rend, Map* map, const char* map_path, const char* tileset_path)
-{
-
-	/* TODO: Add layer functionality */
-	/* TODO: Refine scaling functionality (maybe make it a parameter? */
-
-	int i, j, c, x;
-	int tile_w, tile_h;
-	FILE* fp;
-	char* buffer,* pos;
-	const int bufsize = 2048 * 4;
-	const int scale = 2;
-
-	//const char keys[5][16] = {"width=", "height=", "tilewidth=", "tileheight=", "data="};
-	int* 	   chests[4] = {&map->w, &map->h, &tile_w, &tile_h};
-
-	if(!rend || !map || !map_path || !tileset_path) return 1;
-
-	/* Open file and read map */
-	fp = fopen(map_path, "r");
-	if(!fp){
-		DEBUGMSG("Could not open file!");
-		return 1;
-	}
-
-	/* Allocate memory */
-	buffer = (char*) malloc(sizeof(char) * bufsize);
-	if(!buffer){
-		DEBUGMSG("Could not allocate/populate buffer!");
-		fclose(fp);
-		return 1;
-	}
-
-	memset(buffer, 0, bufsize);
-
-	/* Load file into buffer */
-	for(c = i = 0; c != EOF || i < bufsize - 1; i++){
-		c = fgetc(fp);
-		buffer[i] = c;
-	}
-
-	fclose(fp);
-
-	/* Grab basic tilemap data */
-	for(i = 0, pos = buffer; i < 4; i++){
-		while(pos != buffer + bufsize){
-			if(isdigit(pos[0])) break;
-			pos++;
-		}
-		*chests[i] = strtol(pos, &pos, 10);
-		//printf("%d %p\n", *chests[i], pos);
-	}
-
-	/* Allocate map structures */
-	map->tilemap = TilemapNew(rend, tile_w, tile_h, tileset_path);
-	if(!map->tilemap){
-		DEBUGMSG("Could not create tilemap!");
-		return 1;
-	}
-
-	map->tiles = (Tile*) calloc(map->w * map->h, sizeof(Tile));
-	if(!map->tiles){
-		DEBUGMSG("Could not allocate tiles!");
-		TilemapFree(map->tilemap);
-		return 1;
-	}
-
-	/* Establish codes for the tiles */
-	for(i = 0; i < map->tilemap->w; i++)
-		for(j = 0; j < map->tilemap->h; j++){
-			FILLRECT(map->tilemap->mapping[i + j*map->tilemap->w],
-					 map->tilemap->tile_w * i,
-					 map->tilemap->tile_h * j,
-					 map->tilemap->tile_w,
-					 map->tilemap->tile_h);
-	}
-	printf("%d codes loaded!\n", map->tilemap->num);
-
-	/* Setup pointer to read from specific point in the buffer */
-	pos = strstr(buffer, "data=");
-	if(!pos){
-		DEBUGMSG("strstr returned nothing!");
-		return 1;
-	}
-	pos+=5;
-
-	/* Fill the map with the previous codes */
-	x = 0;
-	int bytes = 0, read = 0;
-	for(j = 0; j < map->h; j++){
-		for(i = 0; i < map->w; i++){
-			/* TODO: Handle sscanf return value */
-			sscanf(pos + read, "%d%n", &x, &bytes);
-			read += bytes;
-		
-			map->tiles[i + map->w * j].code = x-1;
-			FILLRECT(map->tiles[i + map->w * j].dest, 
-					 map->tilemap->tile_w * scale * i,
-					 map->tilemap->tile_h * scale * j,
-					 map->tilemap->tile_w * scale,
-					 map->tilemap->tile_h * scale);
-		}
-	}
-	/* TODO: Support for more layers */
-
-	if(!TilemapAssert(map->tilemap)){
-		
-	}
-	free(buffer);
-	return 0;
 }
 
 int TilemapAssert(Tilemap* tm)
@@ -207,14 +107,125 @@ Map* MapLoad(SDL_Renderer* rend, const char* mapfile, const char* tilesetpath)
 		return NULL;
 	}
 	
-	m->renderer= rend;
-	
-	TilemapLoad(rend, m, mapfile, tilesetpath);
+	m->renderer = rend;
+
+	MapFromFile(m, mapfile, tilesetpath);
 
 	MapPrint(m);
 
 	return m;
 }
+
+int MapFromFile(Map* map, const char* map_path, const char* tileset_path)
+{
+
+	/* TODO: Add layer functionality */
+	/* TODO: Refine scaling functionality (maybe make it a parameter? */
+
+	int i, c;
+	int tile_w, tile_h;
+	FILE* fp;
+	char* buffer,* pos;
+	const int bufsize = 2048 * 4;
+	const int scale = 2;
+
+	int* chests[4] = {&map->w, &map->h, &tile_w, &tile_h};
+
+	if(!map || !map_path || !tileset_path) return 1;
+
+	/* Open file and read map */
+	fp = fopen(map_path, "r");
+	if(!fp){
+		DEBUGMSG("Could not open file!");
+		return 1;
+	}
+
+	/* Allocate memory */
+	buffer = (char*) malloc(bufsize * sizeof(char));
+	if(!buffer){
+		DEBUGMSG(ERRNOMEM);
+		fclose(fp);
+		return 1;
+	}
+	memset(buffer, 0, bufsize);
+
+	/* Load file into buffer */
+	for(c = i = 0; c != EOF || i < bufsize - 1; i++){
+		c = fgetc(fp);
+		buffer[i] = c;
+	}
+
+	fclose(fp);
+
+	/* Grab basic tilemap data */
+	for(i = 0, pos = buffer; i < 4; i++){
+		while(pos != buffer + bufsize){
+			if(isdigit(pos[0])) break;
+			pos++;
+		}
+		*chests[i] = strtol(pos, &pos, 10);
+	}
+
+	map->tilemap = TilemapNew(map->renderer, tile_w, tile_h, tileset_path);
+	if(!map->tilemap){
+		DEBUGMSG(ERRNOMEM);
+		free(buffer);
+		MapFree(map);
+		return 1;
+	}
+
+	map->tiles = (Tile*) calloc(map->w * map->h, sizeof(Tile));
+	if(!map->tiles){
+		DEBUGMSG(ERRNOMEM);
+		free(buffer);
+		MapFree(map);
+		return 1;
+	}
+
+	/* Setup pointer to read from specific point in the buffer */
+	pos = strstr(buffer, "data=");
+	if(!pos){
+		DEBUGMSG("strstr returned nothing!");
+		free(buffer);
+		MapFree(map);
+		return 1;
+	}
+	pos+=5;
+
+	MapFill(map, pos, scale);
+
+	free(buffer);
+
+	return 0;
+}
+
+int MapFill(Map* map, char* buffer, int scale)
+{
+	int i, j, bytes, read, x;
+
+	if(!map || !buffer)
+		return 1;
+
+	/* Fill the map with the codes */
+	bytes = read = x = 0;
+	for(j = 0; j < map->h; j++){
+		for(i = 0; i < map->w; i++){
+			/* TODO: Handle sscanf return value */
+			int w = sscanf(buffer + read, "%d%n", &x, &bytes);
+			read += bytes;
+			printf("%d\n", w);
+			map->tiles[i + map->w * j].code = x-1;
+			FILLRECT(map->tiles[i + map->w * j].dest, 
+					 map->tilemap->tile_w * scale * i,
+					 map->tilemap->tile_h * scale * j,
+					 map->tilemap->tile_w * scale,
+					 map->tilemap->tile_h * scale);
+		}
+	}
+
+	return 0;
+}
+
 
 void MapFree(Map* m)
 {

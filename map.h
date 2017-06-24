@@ -1,3 +1,6 @@
+#ifndef MAP_H
+#define MAP_H
+
 #include <stdio.h>
 #include <string.h>
 #include <SDL2/SDL.h>
@@ -33,7 +36,16 @@ Tilemap* 	TilemapNew  (SDL_Renderer*, int, int, const char*);
 int 	 	TilemapLoad (SDL_Renderer*, Map*, const char*, const char*);
 void 		TilemapFree (Tilemap*);
 
-Map* 		MapLoad 	(SDL_Renderer*, const char*, const char*);
-void 		MapFree 	(Map*);
-void 		MapPrint 	(Map*);
-void 		MapRender 	(Map*);
+/* Creates a map from scratch */
+Map* 		MapLoad 		(SDL_Renderer*, const char*, const char*);
+/* */
+int 		MapFromFile		(Map*, const char*, const char*);
+
+/* Fill map with the codes */
+int 		MapFill 		(Map*, char*, int);
+
+void 		MapFree 		(Map*);
+void 		MapPrint 		(Map*);
+void 		MapRender 		(Map*);
+
+#endif

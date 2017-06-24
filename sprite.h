@@ -7,41 +7,33 @@
 #include <stdio.h>
 
 #include "core.h"
-
-typedef struct _frame_
-{
-	SDL_Rect 			tilepos;
-	struct _frame_* 	next;
-}
-AnimationFrame;
+#include "utils.h"
+#include "map.h"
 
 typedef struct _animation_
 {
-	AnimationFrame* 	head;
-	AnimationFrame* 	curr;
-	int 				size;
-	//int frametime;
+	int 	number_frames;
+	int* 	frame_sequence;
+	int 	current_frame;
+	int 	dt_count;
 }
 Animation;
 
 typedef struct _sprite_
 {
-	SDL_Texture* 		sheet;
-	Animation* 			anim;
-	SDL_Rect 			position;
+	Tilemap*		sheet;
+	SDL_Renderer* 	renderer;
+	int 			current_anim;
+	int 			num_anim;
+	Animation*		anim[256];
+	SDL_Rect		dest;
 }
 Sprite;
 
 Sprite* SpriteNew 			(SDL_Renderer*, const char*, int, int, int, int);
 void 	SpriteFree 			(Sprite*);
-void 	SpriteRender 		(Sprite*, SDL_Renderer*);
+void 	SpriteRender 		(Sprite*);
 void 	SpriteNextFrame 	(Sprite*);
-void 	SpriteAddFrame 		(Sprite*, int, int);
-Sprite*	SpriteFromSheet 	(const char*, int w, int h);
-
-Animation*  AnimationNew 		();
-void 		AnimationFree 		(Animation*);
-int 		AnimationAddFrame 	(Animation*, int x, int y, int w, int h);
-void 		AnimationNext 		(Animation*);
+void 	SpriteAddAnimation	(Sprite*, int*, int);
 
 #endif

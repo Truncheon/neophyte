@@ -1,133 +1,86 @@
 #include "sprite.h"
 
-Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int h)
+Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int t_w, int t_h)
 {
-	Sprite* spr;
-	SDL_Texture* texture;
-	SDL_Surface* tmp;
-	int i, c;
+	Sprite* s;
+	SDL_Surface* surface;
+	const int scale = 1;
+	int i, j;
 
-	spr = (Sprite*) malloc(sizeof(Sprite));
-	if(spr == NULL){
+	s = (Sprite*) malloc(sizeof(Sprite));
+	if(!s){
 		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
 
-	tmp = IMG_Load(path);
-	if(!tmp){
+	s->sheet = TilemapNew(rend, t_w, t_h, path);
+	s->renderer = rend;	
+	surface = IMG_Load(path);
+	if(!surface){
+		DEBUGMSG(IMG_GetError());
+		SpriteFree(s);
 		return NULL;
 	}
-	SDL_SetColorKey(tmp, SDL_TRUE, SDL_MapRGB(tmp->format, 0xFF, 0, 0xFF));
-	texture = SDL_CreateTextureFromSurface(rend, tmp);
-	
-	FILLRECT(spr->position, x, y, w, h);
+		
+	FILLRECT(s->dest, x, y, t_w * scale, t_h * scale);
 
-	spr->sheet = texture;
-	spr->anim = AnimationNew();
-	SpriteAddFrame(spr, x, y);
+	s->num_anim = 0;
+	s->current_anim = 0;
 
-	for(i = 0; i < tmp->w; i+=w)
-		for(c = 0; c < tmp->h; c+=h){
-			SpriteAddFrame(spr, i, c);
+	printf("%d %d\n", s->sheet->w, s->sheet->h);
+	for(j = 0; j < s->sheet->h; j++)
+		for(i = 0; i < s->sheet->w; i++){
+			FILLRECT(s->sheet->mapping[i + j * s->sheet->w], i * t_w, j * t_h, t_w, t_h);
+			printf("%p -> %d %d %d %d\n", &s->sheet->mapping[i + j * s->sheet->w], i * t_w, j * t_h, t_w, t_h);
 		}
 
-	SDL_FreeSurface(tmp);
-	return spr;
+	return s;
 }
 
 void SpriteFree(Sprite* s)
 {
-	if(s == NULL) return;
-	AnimationFree(s->anim);
-	if(s->sheet) SDL_DestroyTexture(s->sheet);
+	if(!s) return;
+	if(s->sheet) TilemapFree(s->sheet);
 	free(s);
 }
 
 void SpriteNextFrame(Sprite* s)
 {
-	if(s == NULL) return;
-	AnimationNext(s->anim);
+	if(!s) return;
 }
 
-void SpriteRender(Sprite* s, SDL_Renderer* renderer)
+void SpriteRender(Sprite* s)
 {
-	if(s == NULL || renderer == NULL) return;
-	if(s->anim == NULL) return;
+	Animation* an;
+	if(!s) return;
 
-	SDL_RenderCopy(renderer, s->sheet, &s->anim->curr->tilepos, &s->position);
-	//AnimationNext(s->anim);
-}
+	an = s->anim[s->current_anim];
 
-void SpriteAddFrame(Sprite* s, int x, int y)
-{
-	if(s == NULL) return;
-	AnimationAddFrame(s->anim, x, y, s->position.w, s->position.h);
-}
+	SDL_RenderCopy(s->renderer, s->sheet->tileset,
+		&s->sheet->mapping[an->frame_sequence[an->current_frame]],
+		&s->dest);
 
-void SpriteLoadSheet()
-{
-
-}
-
-Animation* AnimationNew()
-{
-	Animation* anim = (Animation*) malloc(sizeof(Animation));
-	if(anim == NULL){
-		DEBUGMSG(ERRNOMEM);
-		return NULL;
+	an->dt_count++;
+	if(an->dt_count > 10){
+		an->dt_count = 0;
+		an->current_frame++;
+		if(an->current_frame == an->number_frames)
+			an->current_frame = 0;
 	}
-
-	anim->size = 0;
-	anim->head = anim->curr = NULL;
-
-	return anim;
 }
 
-void AnimationFree(Animation* anim)
+void SpriteAddAnimation(Sprite* s, int* sequence, int n)
 {
-	if(anim == NULL) return;
-	
-	AnimationFrame* aux;
-	while(anim->head != NULL){
-		aux = anim->head->next;
-		free(anim->head);
-		anim->head = aux;
-	}
-	anim->size = 0;
-	free(anim);
+	if(!s) return;
+
+	Animation* an = (Animation*) malloc(sizeof(Animation));
+	if(!an) return;
+
+	an->number_frames = n;
+	an->frame_sequence = sequence;
+	an->current_frame = 0;
+	an->dt_count = 10; /* TODO: Make it a parameter or something? */
+
+	/* TODO: Remove hard limit on animations */
+	s->anim[s->num_anim++] = an;
 }
-
-int AnimationAddFrame(Animation* anim, int x, int y, int w, int h)
-{
-	if(anim == NULL){
-		anim = AnimationNew();
-	}
-
-	AnimationFrame* iter;
-	AnimationFrame* frame = (AnimationFrame*) malloc(sizeof(AnimationFrame));
-	if(frame == NULL){
-		DEBUGMSG(ERRNOMEM);
-		return -1;
-	}
-
-	FILLRECT(frame->tilepos, x, y, w, h);
-	frame->next = NULL;
-	
-	if(anim->size == 0){
-		anim->head = frame;
-	}
-	else{
-		for(iter = anim->head; iter->next != NULL; iter = iter->next);
-		iter->next = frame;
-	}
-	anim->size++;
-
-	return 0;
-}
-
-void AnimationNext(Animation* anim)
-{
-	if(anim == NULL) return;
-	anim->curr = anim->curr->next;
-}
-

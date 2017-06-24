@@ -21,15 +21,15 @@ int main()
 	int* 			keys;
 	Player* 		player;
 	Map* 			map;
-	
+	unsigned long 	currentTime = 0, lastTime = 0;
 	
 	keys 	= CoreSetup(SCRWIDTH, SCRHEIGHT);
 	window 	= CoreInit();
 	renderer= SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 	exit 	= 0;
 	
-	player 	= PlayerNew(renderer, "resources/skeleripped.png", 32, 50, 48*SCALE, 96*SCALE);
-	map = MapLoad(renderer, "maps/test2.txt", "resources/tiles2.png");
+	player 	= PlayerNew(renderer, "resources/skeleripped.png", 100, 100, 31, 42);
+	map 	= MapLoad(renderer, "maps/test2.txt", "resources/tiles2.png");
 
 	do{
 		exit = CoreInput(&event, keys);
@@ -39,9 +39,16 @@ int main()
 		SDL_RenderClear(renderer);
 	
 		MapRender(map);
-		PlayerRender(player, renderer);
+		PlayerRender(player);
 
 		SDL_RenderPresent(renderer);
+		
+		currentTime = SDL_GetTicks();
+
+		printf("Frame time: %ld\n", currentTime - lastTime);
+		if(33 > currentTime - lastTime)
+			SDL_Delay(33 - currentTime + lastTime);
+		lastTime = currentTime;
 	}
 	while(!exit);
 

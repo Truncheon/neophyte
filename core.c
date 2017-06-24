@@ -4,7 +4,8 @@ const char TITLE [256] = ".exe";
 static int CORE_WIN_WIDTH = 1920;
 static int CORE_WIN_HEIGHT = 1080;
 
-int* CoreSetup(int w, int h){
+int* CoreSetup(int w, int h)
+{
 	int* keys;
 	
 	CORE_WIN_WIDTH = w;
@@ -16,21 +17,22 @@ int* CoreSetup(int w, int h){
 	return keys;
 }
 
-SDL_Window* CoreInit(){
+SDL_Window* CoreInit()
+{
 	SDL_Window* window = NULL;
 	if(SDL_Init(SDL_INIT_VIDEO) != 0){
-		DEBUGMSG("%s", SDL_GetError());
+		DEBUGMSG(SDL_GetError());
 		return NULL;
 	}
 	if(IMG_Init(CORE_IMG_INIT_FLAGS) < 0){
-		DEBUGMSG("%s", SDL_GetError());
+		DEBUGMSG(SDL_GetError());
 		return NULL;
 	}
 	window = SDL_CreateWindow(TITLE, CORE_WIN_POS_X, CORE_WIN_POS_Y,
 									 CORE_WIN_WIDTH, CORE_WIN_HEIGHT,
 									 CORE_FLAGS);
 	if(window == NULL){
-		DEBUGMSG("%s", SDL_GetError());
+		DEBUGMSG(SDL_GetError());
 		return NULL;
 	}
 	
@@ -66,23 +68,27 @@ void CoreSetKeys(SDL_Event* ev, int* keys, int mode)
 
 }
 
-void CoreShutdown(SDL_Window* window, int* keys){
+void CoreShutdown(SDL_Window* window, int* keys)
+{
 	SDL_DestroyWindow(window);
 	free(keys);
 	SDL_Quit();
 }
 
-SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path){
+SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path)
+{
 	SDL_Surface* optimized;	
 	SDL_Surface* surface = IMG_Load(path);
 	if(surface == NULL){
-		DEBUGMSG("Could not load IMG: %s, %s", IMG_GetError(), path);
+		DEBUGMSG(IMG_GetError());
+		DEBUGMSG("Could not load IMG!");
 		return NULL;
 	}
 	
 	optimized = SDL_ConvertSurface(surface, fmt, 0);
 	if(optimized == NULL){
-		DEBUGMSG("%s", SDL_GetError());
+		DEBUGMSG(SDL_GetError());
+		DEBUGMSG("Could not convert surface!");
 		SDL_FreeSurface(surface);
 		return NULL;
 	}
