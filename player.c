@@ -1,11 +1,11 @@
 #include "player.h"
 
-Player* PlayerNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int h)
+Player* PlayerNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int h, int scale)
 {
 	Player* p = (Player*) malloc(sizeof(Player));
 	if(!p) return NULL;
 
-	p->sprite = SpriteNew(rend, path, x, y, w, h);
+	p->sprite = SpriteNew(rend, path, x, y, w, h, scale);
 	p->anim = 0;
 
 	/* TODO: Remove this testing code and refactor it for the love of god */

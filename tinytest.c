@@ -6,11 +6,13 @@
 #include "sprite.h"
 #include "player.h"
 #include "map.h"
+#include "text.h"
 #include "utils.h"
 
 #define SCALE 1
-#define SCRWIDTH 640
-#define SCRHEIGHT 480
+#define SCRWIDTH 1920
+#define SCRHEIGHT 1080
+#define WAITTIME 33
 
 int main()
 {
@@ -21,6 +23,8 @@ int main()
 	int* 			keys;
 	Player* 		player;
 	Map* 			map;
+	Typewriter* 	typew;
+	Message* 		msg;
 	unsigned long 	currentTime = 0, lastTime = 0;
 	
 	keys 	= CoreSetup(SCRWIDTH, SCRHEIGHT);
@@ -28,8 +32,11 @@ int main()
 	renderer= SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 	exit 	= 0;
 	
-	player 	= PlayerNew(renderer, "resources/skeleripped.png", 100, 100, 31, 42);
+	player 	= PlayerNew(renderer, "resources/skeleripped.png", 100, 100, 31, 42, 2);
 	map 	= MapLoad(renderer, "maps/test2.txt", "resources/tiles2.png");
+	typew 	= TypewriterNew(renderer, "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+							"resources/ui/dialog_profane.png", 24);
+	msg 	= MessageNew("All your base are belong to us", 3);
 
 	do{
 		exit = CoreInput(&event, keys);
@@ -40,18 +47,21 @@ int main()
 	
 		MapRender(map);
 		PlayerRender(player);
+		TypewriterWrite(typew, msg, 10, 10);
 
 		SDL_RenderPresent(renderer);
 		
 		currentTime = SDL_GetTicks();
 
-		printf("Frame time: %ld\n", currentTime - lastTime);
-		if(33 > currentTime - lastTime)
-			SDL_Delay(33 - currentTime + lastTime);
+		//printf("Frame time: %ld\n", currentTime - lastTime);
+		if(WAITTIME > currentTime - lastTime)
+			SDL_Delay(WAITTIME - currentTime + lastTime);
 		lastTime = currentTime;
 	}
 	while(!exit);
 
+	TypewriterFree(typew);
+	MessageFree(msg);
 	PlayerFree(player);
 	MapFree(map);
 	SDL_DestroyRenderer(renderer);

@@ -12,7 +12,10 @@ int* CoreSetup(int w, int h)
 	CORE_WIN_HEIGHT = h;
 
 	keys = (int*) calloc(64, sizeof(int));
-	if(!keys) printf("keys not allocated!\n");
+	if(!keys){
+		DEBUGMSG(ERRNOMEM);
+		return NULL;
+	}
 
 	return keys;
 }
@@ -28,6 +31,11 @@ SDL_Window* CoreInit()
 		DEBUGMSG(SDL_GetError());
 		return NULL;
 	}
+	if(TTF_Init() < 0){
+		DEBUGMSG(TTF_GetError());
+		return NULL;
+	}
+
 	window = SDL_CreateWindow(TITLE, CORE_WIN_POS_X, CORE_WIN_POS_Y,
 									 CORE_WIN_WIDTH, CORE_WIN_HEIGHT,
 									 CORE_FLAGS);
@@ -57,12 +65,12 @@ int CoreInput(SDL_Event* ev, int* keys)
 void CoreSetKeys(SDL_Event* ev, int* keys, int mode)
 {
 	switch(ev->key.keysym.sym){
-		case SDLK_a: keys[0] = mode; break;
-		case SDLK_w: keys[1] = mode; break;
-		case SDLK_s: keys[2] = mode; break;
-		case SDLK_d: keys[3] = mode; break;
-		case SDLK_ESCAPE: keys[4] = mode; break;
-		case SDLK_SPACE: keys[5] = mode; break;
+		case SDLK_a: 		keys[0] = mode; break;
+		case SDLK_w: 		keys[1] = mode; break;
+		case SDLK_s: 		keys[2] = mode; break;
+		case SDLK_d: 		keys[3] = mode; break;
+		case SDLK_ESCAPE: 	keys[4] = mode; break;
+		case SDLK_SPACE: 	keys[5] = mode; break;
 		default: break;
 	}
 
@@ -72,6 +80,8 @@ void CoreShutdown(SDL_Window* window, int* keys)
 {
 	SDL_DestroyWindow(window);
 	free(keys);
+	TTF_Quit();
+	IMG_Quit();
 	SDL_Quit();
 }
 
@@ -81,14 +91,12 @@ SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path)
 	SDL_Surface* surface = IMG_Load(path);
 	if(surface == NULL){
 		DEBUGMSG(IMG_GetError());
-		DEBUGMSG("Could not load IMG!");
 		return NULL;
 	}
 	
 	optimized = SDL_ConvertSurface(surface, fmt, 0);
 	if(optimized == NULL){
 		DEBUGMSG(SDL_GetError());
-		DEBUGMSG("Could not convert surface!");
 		SDL_FreeSurface(surface);
 		return NULL;
 	}

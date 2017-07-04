@@ -1,49 +1,51 @@
 #include "map.h"
 
-int TilemapAssert(Tilemap* tm);
+/*int TilemapAssert(Tilemap* tm);
+*/
 
 Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_path)
 {
 	Tilemap* tm;
-	SDL_Surface* tmp;
+	int tmp_w, tmp_h;
 	int i, j;
 
 	/* Alocate tilemap */
 	tm = (Tilemap*) calloc(1, sizeof(Tilemap));
 	if(!tm){
-		DEBUGMSG("Could not allocate tilemap!");
+		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
 
-	/* Load surface and transform it into a texture */	
-	tmp = IMG_Load(tileset_path);
-	if(!tmp){
-		DEBUGMSG("Could not load surface!");
-		free(tm);
-		return NULL;
-	}
-	
-	SDL_SetColorKey(tmp, SDL_TRUE, SDL_MapRGB(tmp->format, 0xFF, 0, 0xFF));
-	tm->tileset = SDL_CreateTextureFromSurface(rend, tmp);
+	tm->tileset = UtilsLoadTexture(rend, tileset_path, &tmp_w, &tmp_h);
 	if(!tm->tileset){
-		DEBUGMSG("Could not create texture!");
 		free(tm);
-		SDL_FreeSurface(tmp);
 		return NULL;
 	}
 
 	/* Set basic tilemap data */
-	tm->w = tmp->w / t_w;
-	tm->h = tmp->h / t_h;
-	tm->tile_w = t_w;
-	tm->tile_h = t_h;
+	if(t_w == 0){
+		tm->w = 1;
+		tm->tile_w = tmp_w;
+	}
+	else{
+		tm->w = tmp_w / t_w;
+		tm->tile_w = t_w;
+	}
+	
+	if(t_h == 0){
+		tm->h = 1;
+		tm->tile_h = tmp_h;
+	}
+	else{
+		tm->h = tmp_h / t_h;
+		tm->tile_h = t_h;
+	}
+	
 	tm->num = tm->w * tm->h;
-
-	SDL_FreeSurface(tmp);
 
 	tm->mapping = (SDL_Rect*) calloc(tm->num, sizeof(SDL_Rect));
 	if(tm->mapping == NULL){
-		DEBUGMSG("Could not allocate mapping!");
+		DEBUGMSG(ERRNOMEM);
 		TilemapFree(tm);
 		return NULL;
 	}
@@ -64,6 +66,7 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 	return tm;
 }
 
+/*
 int TilemapAssert(Tilemap* tm)
 {
 	if(tm == NULL){
@@ -81,7 +84,7 @@ int TilemapAssert(Tilemap* tm)
 	}
 	
 	return 1;
-}
+}*/
 
 void TilemapFree(Tilemap* tm)
 {
@@ -97,13 +100,13 @@ Map* MapLoad(SDL_Renderer* rend, const char* mapfile, const char* tilesetpath)
 	Map* m;
 
 	if(rend == NULL || mapfile == NULL || tilesetpath == NULL){
-		DEBUGMSG("Map failed to load!");
+		DEBUGMSG(ERRPARAM);
 		return NULL;
 	}
 
 	m = (Map*) malloc(sizeof(Map));
 	if(m == NULL){
-		DEBUGMSG("Map failed to load!");
+		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
 	
@@ -136,7 +139,7 @@ int MapFromFile(Map* map, const char* map_path, const char* tileset_path)
 	/* Open file and read map */
 	fp = fopen(map_path, "r");
 	if(!fp){
-		DEBUGMSG("Could not open file!");
+		DEBUGMSG(ERRFILE);
 		return 1;
 	}
 
@@ -185,7 +188,7 @@ int MapFromFile(Map* map, const char* map_path, const char* tileset_path)
 	/* Setup pointer to read from specific point in the buffer */
 	pos = strstr(buffer, "data=");
 	if(!pos){
-		DEBUGMSG("strstr returned nothing!");
+		DEBUGMSG(ERRPOINTER);
 		free(buffer);
 		MapFree(map);
 		return 1;
@@ -203,17 +206,19 @@ int MapFill(Map* map, char* buffer, int scale)
 {
 	int i, j, bytes, read, x;
 
-	if(!map || !buffer)
+	if(!map || !buffer){
+		DEBUGMSG(ERRPARAM);
 		return 1;
+	 }
 
 	/* Fill the map with the codes */
 	bytes = read = x = 0;
 	for(j = 0; j < map->h; j++){
 		for(i = 0; i < map->w; i++){
 			/* TODO: Handle sscanf return value */
-			int w = sscanf(buffer + read, "%d%n", &x, &bytes);
+			/* int w = */sscanf(buffer + read, "%d%n", &x, &bytes);
 			read += bytes;
-			printf("%d\n", w);
+			//printf("%d\n", w);
 			map->tiles[i + map->w * j].code = x-1;
 			FILLRECT(map->tiles[i + map->w * j].dest, 
 					 map->tilemap->tile_w * scale * i,
@@ -229,7 +234,10 @@ int MapFill(Map* map, char* buffer, int scale)
 
 void MapFree(Map* m)
 {
-	if(!m) return;
+	if(!m){
+		DEBUGMSG(ERRPARAM);
+		return;
+	}
 
 	if(m->tiles) free(m->tiles);
 	TilemapFree(m->tilemap);
@@ -240,7 +248,10 @@ void MapPrint(Map* m)
 {
 	int x, y;
 
-	if(!m) return;
+	if(!m){
+		DEBUGMSG(ERRPARAM);
+		return;
+	}
 
 	printf("Map: (%d by %d)\n\t", m->w, m->h);
 	for(x = 0; x < m->w; x++){
@@ -261,8 +272,10 @@ void MapRender(Map* m)
 {
 	int i, code;
 
-	if(m == NULL || m->tilemap == NULL || m->tilemap->mapping == NULL || m->tiles == NULL)
+	if(m == NULL || m->tilemap == NULL || m->tilemap->mapping == NULL || m->tiles == NULL){
+		DEBUGMSG(ERRPARAM);
 		return;
+	}
 
 	for(i = 0; i < m->w * m->h; i++){
 		code = m->tiles[i].code;

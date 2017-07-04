@@ -12,7 +12,7 @@ typedef struct _player_
 }
 Player;
 
-Player* PlayerNew 	(SDL_Renderer*, const char*, int, int, int, int);
+Player* PlayerNew 	(SDL_Renderer*, const char*, int, int, int, int, int);
 void 	PlayerFree 	(Player*);
 void 	PlayerRender(Player*);
 void 	PlayerInput (Player*, int*);

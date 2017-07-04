@@ -1,11 +1,15 @@
 #include "sprite.h"
 
-Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int t_w, int t_h)
+Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int t_w, int t_h, int scale)
 {
 	Sprite* s;
 	SDL_Surface* surface;
-	const int scale = 1;
 	int i, j;
+
+	if(!rend || !path || (scale < 1)){
+		DEBUGMSG(ERRPARAM);
+		return NULL;
+	}
 
 	s = (Sprite*) malloc(sizeof(Sprite));
 	if(!s){
@@ -26,12 +30,13 @@ Sprite* SpriteNew(SDL_Renderer* rend, const char* path, int x, int y, int t_w, i
 
 	s->num_anim = 0;
 	s->current_anim = 0;
+	s->scale = scale;
 
-	printf("%d %d\n", s->sheet->w, s->sheet->h);
+	//printf("%d %d\n", s->sheet->w, s->sheet->h);
 	for(j = 0; j < s->sheet->h; j++)
 		for(i = 0; i < s->sheet->w; i++){
 			FILLRECT(s->sheet->mapping[i + j * s->sheet->w], i * t_w, j * t_h, t_w, t_h);
-			printf("%p -> %d %d %d %d\n", &s->sheet->mapping[i + j * s->sheet->w], i * t_w, j * t_h, t_w, t_h);
+			//printf("%p -> %d %d %d %d\n", &s->sheet->mapping[i + j * s->sheet->w], i * t_w, j * t_h, t_w, t_h);
 		}
 
 	return s;
