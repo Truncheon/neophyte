@@ -4,20 +4,21 @@ const char TITLE [256] = ".exe";
 static int CORE_WIN_WIDTH = 1920;
 static int CORE_WIN_HEIGHT = 1080;
 
-int* CoreSetup(int w, int h)
+//int* CoreSetup(int w, int h)
+void CoreSetup(int w, int h)
 {
-	int* keys;
+	//int* keys;
 	
 	CORE_WIN_WIDTH = w;
 	CORE_WIN_HEIGHT = h;
 
-	keys = (int*) calloc(64, sizeof(int));
+	/*keys = (int*) calloc(64, sizeof(int));
 	if(!keys){
 		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
 
-	return keys;
+	return keys;*/
 }
 
 SDL_Window* CoreInit()
@@ -47,7 +48,7 @@ SDL_Window* CoreInit()
 	return window;
 }
 
-int CoreInput(SDL_Event* ev, int* keys)
+/*int CoreInput(SDL_Event* ev, int* keys)
 {
 	while(SDL_PollEvent(ev)){
 		switch(ev->type){
@@ -74,18 +75,19 @@ void CoreSetKeys(SDL_Event* ev, int* keys, int mode)
 		default: break;
 	}
 
-}
+}*/
 
-void CoreShutdown(SDL_Window* window, int* keys)
+//void CoreShutdown(SDL_Window* window, int* keys)
+void CoreShutdown(SDL_Window* window)
 {
 	SDL_DestroyWindow(window);
-	free(keys);
+	//free(keys);
 	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
 }
 
-SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path)
+/*SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path)
 {
 	SDL_Surface* optimized;	
 	SDL_Surface* surface = IMG_Load(path);
@@ -103,4 +105,4 @@ SDL_Surface* CoreLoadSurface(SDL_PixelFormat* fmt, const char* path)
 	SDL_FreeSurface(surface);
 	return optimized;
 }
-
+*/

@@ -3,14 +3,21 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
-#define DEBUGMSG(msg) \
-		do{ \
-			fprintf(stderr, "(%s, %d) %s\n", __FILE__, __LINE__, msg); \
-		} while(0);
+#define DEBUG 1
+
+#if DEBUG
+	#define DEBUGMSG(msg) \
+			do{ \
+				fprintf(stderr, "(%s, %d) %s\n", __FILE__, __LINE__, msg); \
+			} while(0);
+#else
+	#define DEBUGMSG(msg) \
+			do{ } while(0);
+#endif
+
 
 #define ERRNOMEM "Could not allocate something!"
-#define ERRNULL "Pointer's null when it shouldn't be!"
-#define ERRPARAM "One or more parameter is NULL!"
+#define ERRPARAM "One or more parameters are NULL!"
 #define ERRFILE "Could not open/access file!"
 #define ERRPOINTER "Pointer is NULL when it shouldn't be!"
 

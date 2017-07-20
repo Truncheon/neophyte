@@ -1,12 +1,22 @@
 #include "player.h"
 
-Player* PlayerNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int h, int scale)
+Player* PlayerNew(SDL_Renderer* rend, Input* input, const char* path, int x, int y, int w, int h, int scale)
 {
+	if(!rend || !input || !path){
+		DEBUGMSG(ERRPARAM);
+		return NULL;
+	}
+
 	Player* p = (Player*) malloc(sizeof(Player));
 	if(!p) return NULL;
 
 	p->sprite = SpriteNew(rend, path, x, y, w, h, scale);
 	p->anim = 0;
+
+	p->A = InputFindKeyWithID(input, "A");
+	p->W = InputFindKeyWithID(input, "W");
+	p->S = InputFindKeyWithID(input, "S");
+	p->D = InputFindKeyWithID(input, "D");
 
 	/* TODO: Remove this testing code and refactor it for the love of god */
 	int* a,* b,* c,* d;
@@ -39,7 +49,7 @@ Player* PlayerNew(SDL_Renderer* rend, const char* path, int x, int y, int w, int
 	SpriteAddAnimation(p->sprite, b, 4);
 	SpriteAddAnimation(p->sprite, c, 4);
 	SpriteAddAnimation(p->sprite, d, 4);
-	
+
 	return p;
 }
 
@@ -54,36 +64,42 @@ void PlayerRender(Player* p)
 	SpriteRender(p->sprite);
 }
 
-void PlayerInput(Player* p, int* keys)
+void PlayerUpdate(Player* p)
 {
 	#define MOVE 3
-	
-	//Walk left 1
-	if(keys[0]){
-		p->sprite->dest.x -= MOVE;
-		if(p->sprite->current_anim != 1){
-			p->sprite->current_anim = 1;
+	#define UPDATE(x, step, anim, val) 	\
+			do{ 						\
+				x += step; 				\
+				if(anim != val) 		\
+					anim = val;			\
+				return; 				\
+			}while(0);
+
+	Key* keys[4] = {p->A, p->W, p->S, p->D};
+
+	while(1){
+		int swap = 0;
+		for(int i = 0; i < 3; i++){
+			if(keys[i]->dt > keys[i+1]->dt){
+				swap = 1;
+				Key* tmp = keys[i+1];
+				keys[i+1] = keys[i];
+				keys[i] = tmp;
+			}
 		}
+		if(!swap)
+			break;
 	}
-	//Walk up 3
-	if(keys[1]){
-		p->sprite->dest.y -= MOVE;
-		if(p->sprite->current_anim != 3){
-			p->sprite->current_anim = 3;
-		}
-	}
-	//Walk down 0
-	if(keys[2]){
-		p->sprite->dest.y += MOVE;
-		if(p->sprite->current_anim != 0){
-			p->sprite->current_anim = 0;
-		}
-	}
-	//Walk right 2
-	if(keys[3]){
-		p->sprite->dest.x += MOVE;
-		if(p->sprite->current_anim != 2){
-			p->sprite->current_anim = 2;
-		}
+	for(int i = 0; i < 4; i++){
+		if(keys[i]->value == KEY_OFF)
+			continue;			
+		if(strcmp(keys[i]->id, "A") == 0)
+			UPDATE(p->sprite->dest.x, -MOVE, p->sprite->current_anim, 1);
+		if(strcmp(keys[i]->id, "W") == 0)
+			UPDATE(p->sprite->dest.y, -MOVE, p->sprite->current_anim, 3);
+		if(strcmp(keys[i]->id, "S") == 0)
+			UPDATE(p->sprite->dest.y, MOVE, p->sprite->current_anim, 0);
+		if(strcmp(keys[i]->id, "D") == 0)
+			UPDATE(p->sprite->dest.x, MOVE, p->sprite->current_anim, 2);
 	}
 }

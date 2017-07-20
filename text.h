@@ -1,9 +1,18 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdlib.h>
 #include "utils.h"
-#include "map.h"
+#include "texture.h"
+
+#define TYPEWRITERPADDINGH 24
+#define TYPEWRITERPADDINGV 16
 
 #define MSGSPEEDCONST 100
+#define MSGSPEEDSTEP 10
+#define MSGMAXLINES 64
+#define MSGVPADDING 0
+#define MSGTIMEBETWEENLINES 20
+
+#define DIALOGSCROLLTIME 100
 
 typedef struct _glyphMetrics_
 {
@@ -21,37 +30,42 @@ typedef struct _typewriter_
 	SDL_Color 		color;
 	SDL_Renderer* 	renderer;
 
-	Tilemap* 		dialogtex;
+	Texture* 		backdrop;
 }
 Typewriter;
 
 typedef struct _msg_
 {
-	char* msg;
 	int len;
-	
-	int num_lines;
-	SDL_Texture* lines[64];
-	int tex_w, tex_h;
-
-	int curr_num;
-	int curr_pos;
-	
-	int speed;
-	int dt;
+	char* text;
+	Texture* tex;
 }
 Message;
 
 typedef struct _dialog_
 {
-	int num;
-	SDL_Texture* lines[64];
+	Message* msgs;
+	int num_msgs;
+
+	int curr_msg;
+	int curr_point;
+	int curr_w;
+
+	int speed;
+	int dt;
+
+	int over;
+	int time;
+	int offset;
 }
 Dialog;
 
 Typewriter* TypewriterNew 	(SDL_Renderer*, const char*, const char*, int);
-void 		TypewriterWrite (Typewriter*, Message*, int, int);
+void 		TypewriterWrite (Typewriter*, Dialog*, int, int);
 void 		TypewriterFree 	(Typewriter*);
 
-Message* 	MessageNew 	(char* msg, int spd);
-void 		MessageFree (Message* m);
+Dialog* 	DialogNew 	(Typewriter* tw, char* msg, int spd);
+int 		DialogFill	(Dialog* dg, Typewriter* tw, const char* msg);
+void 		DialogFree 	(Dialog* dg);
+
+void 		MessageFree(Message*);

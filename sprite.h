@@ -10,6 +10,8 @@
 #include "utils.h"
 #include "map.h"
 
+#define SPRITEMAXANIMS 256
+
 typedef struct _animation_
 {
 	int 	number_frames;
@@ -26,7 +28,7 @@ typedef struct _sprite_
 	
 	int 			current_anim;
 	int 			num_anim;
-	Animation*		anim[256];
+	Animation*		anim[SPRITEMAXANIMS];
 
 	int 			scale;
 	SDL_Rect		dest;

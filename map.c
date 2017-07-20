@@ -1,12 +1,8 @@
 #include "map.h"
 
-/*int TilemapAssert(Tilemap* tm);
-*/
-
-Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_path)
+Tilemap* TilemapNew(SDL_Renderer* rend, int tile_w, int tile_h, const char* tileset_path)
 {
 	Tilemap* tm;
-	int tmp_w, tmp_h;
 	int i, j;
 
 	/* Alocate tilemap */
@@ -16,35 +12,35 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 		return NULL;
 	}
 
-	tm->tileset = UtilsLoadTexture(rend, tileset_path, &tmp_w, &tmp_h);
+	tm->tileset = TextureLoad(rend, tileset_path);
 	if(!tm->tileset){
 		free(tm);
 		return NULL;
 	}
 
 	/* Set basic tilemap data */
-	if(t_w == 0){
+	if(tile_w == 0){
 		tm->w = 1;
-		tm->tile_w = tmp_w;
+		tm->tile_w = tm->tileset->w;
 	}
 	else{
-		tm->w = tmp_w / t_w;
-		tm->tile_w = t_w;
+		tm->w = tm->tileset->w / tile_w;
+		tm->tile_w = tile_w;
 	}
 	
-	if(t_h == 0){
+	if(tile_h == 0){
 		tm->h = 1;
-		tm->tile_h = tmp_h;
+		tm->tile_h = tm->tileset->h;
 	}
 	else{
-		tm->h = tmp_h / t_h;
-		tm->tile_h = t_h;
+		tm->h = tm->tileset->h / tile_h;
+		tm->tile_h = tile_h;
 	}
 	
 	tm->num = tm->w * tm->h;
 
 	tm->mapping = (SDL_Rect*) calloc(tm->num, sizeof(SDL_Rect));
-	if(tm->mapping == NULL){
+	if(!tm->mapping){
 		DEBUGMSG(ERRNOMEM);
 		TilemapFree(tm);
 		return NULL;
@@ -66,31 +62,11 @@ Tilemap* TilemapNew(SDL_Renderer* rend, int t_w, int t_h, const char* tileset_pa
 	return tm;
 }
 
-/*
-int TilemapAssert(Tilemap* tm)
-{
-	if(tm == NULL){
-		DEBUGMSG("No tilemap!");
-		return 0;
-	}
-
-	if(tm->tileset == NULL){
-		DEBUGMSG("No tileset!");
-		return 0;
-	}
-	if(tm->mapping == NULL){
-		DEBUGMSG("No mapping!");
-		return 0;
-	}
-	
-	return 1;
-}*/
-
 void TilemapFree(Tilemap* tm)
 {
-	if(tm == NULL) return;
+	if(!tm) return;
 
-	if(tm->tileset) SDL_DestroyTexture(tm->tileset);
+	TextureFree(tm->tileset);
 	if(tm->mapping) free(tm->mapping);
 	free(tm);
 }
@@ -99,27 +75,25 @@ Map* MapLoad(SDL_Renderer* rend, const char* mapfile, const char* tilesetpath)
 {
 	Map* m;
 
-	if(rend == NULL || mapfile == NULL || tilesetpath == NULL){
+	if(!rend || !mapfile || !tilesetpath){
 		DEBUGMSG(ERRPARAM);
 		return NULL;
 	}
 
 	m = (Map*) malloc(sizeof(Map));
-	if(m == NULL){
+	if(!m){
 		DEBUGMSG(ERRNOMEM);
 		return NULL;
 	}
-	
-	m->renderer = rend;
 
-	MapFromFile(m, mapfile, tilesetpath);
+	MapFromFile(m, rend, mapfile, tilesetpath);
 
-	MapPrint(m);
+	//MapPrint(m);
 
 	return m;
 }
 
-int MapFromFile(Map* map, const char* map_path, const char* tileset_path)
+int MapFromFile(Map* map, SDL_Renderer* rend, const char* map_path, const char* tileset_path)
 {
 
 	/* TODO: Add layer functionality */
@@ -134,7 +108,10 @@ int MapFromFile(Map* map, const char* map_path, const char* tileset_path)
 
 	int* chests[4] = {&map->w, &map->h, &tile_w, &tile_h};
 
-	if(!map || !map_path || !tileset_path) return 1;
+	if(!map || !map_path || !tileset_path){
+		DEBUGMSG(ERRPARAM);
+		return 1;
+	}
 
 	/* Open file and read map */
 	fp = fopen(map_path, "r");
@@ -169,7 +146,7 @@ int MapFromFile(Map* map, const char* map_path, const char* tileset_path)
 		*chests[i] = strtol(pos, &pos, 10);
 	}
 
-	map->tilemap = TilemapNew(map->renderer, tile_w, tile_h, tileset_path);
+	map->tilemap = TilemapNew(rend, tile_w, tile_h, tileset_path);
 	if(!map->tilemap){
 		DEBUGMSG(ERRNOMEM);
 		free(buffer);
@@ -215,15 +192,15 @@ int MapFill(Map* map, char* buffer, int scale)
 	bytes = read = x = 0;
 	for(j = 0; j < map->h; j++){
 		for(i = 0; i < map->w; i++){
-			/* TODO: Handle sscanf return value */
-			/* int w = */sscanf(buffer + read, "%d%n", &x, &bytes);
+
+			int index = i + map->w * j;
+			sscanf(buffer + read, "%d%n", &x, &bytes);
 			read += bytes;
-			//printf("%d\n", w);
-			map->tiles[i + map->w * j].code = x-1;
-			FILLRECT(map->tiles[i + map->w * j].dest, 
-					 map->tilemap->tile_w * scale * i,
-					 map->tilemap->tile_h * scale * j,
-					 map->tilemap->tile_w * scale,
+			map->tiles[index].code = x-1;
+			map->tiles[index].coll = NORMAL;
+			
+			FILLRECT(map->tiles[index].dest, map->tilemap->tile_w * scale * i,
+					 map->tilemap->tile_h * scale * j, map->tilemap->tile_w * scale,
 					 map->tilemap->tile_h * scale);
 		}
 	}
@@ -272,7 +249,7 @@ void MapRender(Map* m)
 {
 	int i, code;
 
-	if(m == NULL || m->tilemap == NULL || m->tilemap->mapping == NULL || m->tiles == NULL){
+	if(!m || !m->tilemap || !m->tilemap->mapping || !m->tiles){
 		DEBUGMSG(ERRPARAM);
 		return;
 	}
@@ -281,11 +258,7 @@ void MapRender(Map* m)
 		code = m->tiles[i].code;
 		if(code > m->tilemap->num || code < 0)
 			code = 0;
-
-		SDL_RenderCopy( m->renderer,
-						m->tilemap->tileset,
-						&m->tilemap->mapping[code],
-						&m->tiles[i].dest);
+		TextureRender(m->tilemap->tileset, &m->tilemap->mapping[code],	&m->tiles[i].dest);
 	}
 }
 
